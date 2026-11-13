@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Data Exploration | ISRAA{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-bar me-2"></i>Data Exploration</h2>
+            <p class="text-muted">Explore and analyze your datasets.</p>
+        </div>
+        <a href="{{ url_for('upload.upload_page') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i>Upload Dataset
+        </a>
+    </div>
+
+    {% if datasets %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <label class="form-label fw-bold">Select a dataset</label>
+            <select class="form-select"
+                    onchange="if(this.value) window.location.href=this.value;">
+                <option value="">Choose a dataset...</option>
+                {% for item in datasets %}
+                <option value="{{ url_for('explore.explore_dataset', dataset_id=item.id) }}"
+                    {% if dataset and dataset.id == item.id %}selected{% endif %}>
+                    {{ item.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if dataset %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h4>{{ dataset.name }}</h4>
+            <p class="text-muted mb-0">
+                {{ dataset.num_rows }} rows × {{ dataset.num_columns }} columns
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Rows</h6>
+                    <h3>{{ dataset.num_rows }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Columns</h6>
+                    <h3>{{ dataset.num_columns }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">File Type</h6>
+                    <h3>{{ dataset.file_type|upper }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold">
+            <i class="fas fa-table me-2"></i>Dataset Preview
+        </div>
+        <div class="card-body table-responsive">
+            {% if preview_data %}
+            <table class="table table-striped table-bordered" id="previewTable">
+                <thead>
+                    <tr>
+                        {% for column in preview_columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in preview_data %}
+                    <tr>
+                        {% for value in row %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted">No preview data available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Data Summary</div>
+                <div class="card-body">
+                    <pre class="small text-wrap">{{ summary|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold">Column Statistics</div>
+                <div class="card-body">
+                    <pre class="small text-wrap">{{ col_stats|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold">Correlation Matrix</div>
+                <div class="card-body">
+                    <pre class="small text-wrap">{{ correlation|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Select a dataset to start exploring its data.
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-warning">
+        No datasets found. Please upload a dataset first.
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function () {
+    if ($('#previewTable').length) {
+        $('#previewTable').DataTable({
+            pageLength: 10,
+            scrollX: true
+        });
+    }
+});
+</script>
+{% endblock %}

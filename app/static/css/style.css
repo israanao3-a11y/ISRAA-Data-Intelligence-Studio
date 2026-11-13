@@ -1,0 +1,255 @@
+/* ============================================================
+   ISRAA - Data Intelligence Studio  |  Custom Styles
+   ============================================================ */
+
+/* ---------- General ---------- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* ---------- Navbar ---------- */
+.navbar-brand {
+    font-size: 1.2rem;
+    letter-spacing: 0.5px;
+}
+
+.navbar .nav-link {
+    font-size: 0.92rem;
+    padding: 0.5rem 0.85rem !important;
+}
+
+.navbar .dropdown-item {
+    font-size: 0.9rem;
+}
+
+/* ---------- Cards ---------- */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+}
+
+/* ---------- Stat Cards (Dashboard) ---------- */
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.stat-card .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.85;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ---------- Page Headers ---------- */
+.page-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e3e6ea;
+}
+
+.page-header h2 {
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.page-header .subtitle {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+/* ---------- Upload Area ---------- */
+.upload-area {
+    border: 3px dashed #adb5bd;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+    border-color: #0d6efd;
+    background-color: #e8f0fe;
+}
+
+.upload-area .upload-icon {
+    font-size: 3.5rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.upload-area:hover .upload-icon {
+    color: #0d6efd;
+}
+
+/* ---------- Data Quality Badge ---------- */
+.quality-score {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.quality-score.excellent { background-color: #28a745; }
+.quality-score.good      { background-color: #17a2b8; }
+.quality-score.fair      { background-color: #ffc107; color: #333; }
+.quality-score.poor      { background-color: #dc3545; }
+
+/* ---------- Processing Steps ---------- */
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.step-indicator::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 5%;
+    right: 5%;
+    height: 3px;
+    background-color: #dee2e6;
+    z-index: 0;
+}
+
+.step-item {
+    text-align: center;
+    z-index: 1;
+    flex: 1;
+}
+
+.step-item .step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.step-item.active .step-circle {
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+.step-item.completed .step-circle {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.step-item .step-label {
+    font-size: 0.78rem;
+    color: #6c757d;
+}
+
+.step-item.active .step-label {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+/* ---------- Tables ---------- */
+.table-container {
+    max-height: 500px;
+    overflow: auto;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+/* ---------- Chart Containers ---------- */
+.chart-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* ---------- Feature Tag ---------- */
+.feature-tag {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    margin: 0.15rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* ---------- Loading Spinner Overlay ---------- */
+.loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    flex-direction: column;
+}
+
+.loading-overlay.active {
+    display: flex;
+}
+
+.loading-overlay .spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+    .step-indicator {
+        flex-wrap: wrap;
+    }
+    .step-item {
+        flex: 0 0 33%;
+        margin-bottom: 1rem;
+    }
+}

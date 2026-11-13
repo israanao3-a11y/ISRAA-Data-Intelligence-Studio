@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# App data
+instance/
+uploads/*
+processed/*
+models/*
+reports/*
+!uploads/.gitkeep
+!processed/.gitkeep
+!models/.gitkeep
+!reports/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache and testing
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# Logs
+*.log
+
+# Generated model files
+*.joblib
+*.pkl
+*.pickle
+# Generated ML models
+models/*.joblib
+models/*.pkl
+
+# Uploaded datasets
+uploads/*
+!uploads/.gitkeep
+
+# Processed datasets
+processed/*
+!processed/.gitkeep
+
+# Generated reports
+reports/*
+!reports/.gitkeep
+
+# Archive files
+*.rar

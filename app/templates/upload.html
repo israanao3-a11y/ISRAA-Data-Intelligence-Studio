@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset | ISRAA{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h2 class="fw-bold">
+            <i class="fas fa-upload text-primary me-2"></i>
+            Upload Dataset
+        </h2>
+        <p class="text-muted">
+            Import your dataset to start exploring and analyzing your data.
+        </p>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+
+            <form method="POST"
+                  action="{{ url_for('upload.upload_file') }}"
+                  enctype="multipart/form-data">
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        Select your dataset
+                    </label>
+
+                    <input type="file"
+                           name="file"
+                           class="form-control"
+                           accept=".csv,.xls,.xlsx"
+                           required>
+
+                    <small class="text-muted">
+                        Supported formats: CSV, XLS, XLSX
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>
+                    Upload Dataset
+                </button>
+
+            </form>
+
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-white py-3">
+            <h5 class="fw-bold mb-0">Available Datasets</h5>
+        </div>
+
+        <div class="card-body">
+
+            {% if datasets %}
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Rows</th>
+                            <th>Columns</th>
+                            <th>Size</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for dataset in datasets %}
+                        <tr>
+                            <td>{{ dataset.name }}</td>
+                            <td>{{ dataset.num_rows }}</td>
+                            <td>{{ dataset.num_columns }}</td>
+                            <td>
+                                {{ "%.2f"|format(dataset.file_size / 1024) }} KB
+                            </td>
+                            <td>
+                                <form method="POST"
+                                      action="{{ url_for('upload.delete_dataset', dataset_id=dataset.id) }}"
+                                      onsubmit="return confirm('Delete this dataset?');">
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+
+            {% else %}
+
+            <div class="text-center py-4">
+                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                <h5>No datasets uploaded yet</h5>
+                <p class="text-muted">
+                    Upload your first dataset to get started.
+                </p>
+            </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

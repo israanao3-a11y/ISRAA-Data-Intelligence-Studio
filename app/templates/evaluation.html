@@ -1,0 +1,1641 @@
+
+{% extends "base.html" %}
+
+{% block title %}Model Evaluation | ISRAA{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- HEADER -->
+    <div class="mb-4">
+        <span class="text-primary fw-semibold small">
+            DATA INTELLIGENCE STUDIO
+        </span>
+
+        <h2 class="fw-bold mt-2">
+            <i class="fas fa-chart-line me-2"></i>
+            Model Evaluation Dashboard
+        </h2>
+
+        <p class="text-muted">
+            Visual analysis of machine learning model performance.
+        </p>
+    </div>
+
+    {% if ml_results and results %}
+
+    <!-- DATASET INFORMATION -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <small class="text-muted">Dataset</small>
+                    <h6 class="fw-bold">{{ dataset_name or 'N/A' }}</h6>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted">Task Type</small>
+                    <h6 class="fw-bold">{{ task_type|title if task_type else 'N/A' }}</h6>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted">Target</small>
+                    <h6 class="fw-bold">{{ target_column or 'N/A' }}</h6>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted">Best Model</small>
+                    <h6 class="fw-bold text-primary">
+                        {{ best_model_name or 'N/A' }}
+                    </h6>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- MODEL SELECTOR -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="fas fa-brain text-primary"></i>
+                <h5 class="fw-bold mb-0">Model Selection</h5>
+            </div>
+
+            <select class="form-select" id="modelSelector">
+
+                {% for result in results %}
+                <option value="{{ loop.index0 }}"
+                    {% if result.model_key == best_model %}selected{% endif %}>
+                    {{ result.model_name }}
+                    {% if result.model_key == best_model %}
+                        (Best Model)
+                    {% endif %}
+                </option>
+                {% endfor %}
+
+            </select>
+
+        </div>
+    </div>
+
+    <!-- MODEL COMPARISON CHARTS -->
+    <div class="row g-4 mb-4">
+
+        {% if task_type == 'classification' %}
+
+        <!-- F1 SCORE COMPARISON -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="fas fa-bullseye me-2 text-primary"></i>
+                    F1-Score Comparison
+                </div>
+
+                <div class="card-body">
+                    <div style="height:300px;">
+                        <canvas id="f1ComparisonChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        {% endif %}
+
+        <!-- TRAINING TIME COMPARISON -->
+        <div class="{% if task_type == 'classification' %}col-lg-6{% else %}col-lg-12{% endif %}">
+            <div class="card border-0 shadow-sm h-100">
+
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="fas fa-clock me-2 text-primary"></i>
+                    Training Time Comparison
+                </div>
+
+                <div class="card-body">
+                    <div style="height:300px;">
+                        <canvas id="trainingTimeComparisonChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODEL RESULTS -->
+    {% for result in results %}
+
+    {% set model_index = loop.index0 %}
+
+    <div class="evaluation-result"
+         id="result-{{ model_index }}"
+         style="display:none;">
+
+        <div class="mb-4">
+            <h4 class="fw-bold">{{ result.model_name }}</h4>
+
+            <span class="badge bg-primary">
+                {{ task_type|title }}
+            </span>
+        </div>
+
+        <!-- TRAINING INFORMATION -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <small class="text-muted">Training Time</small>
+                        <h3 class="fw-bold text-primary mt-2">
+                            {{ "%.4f"|format(result.training_time|float) }} s
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <small class="text-muted">Dataset</small>
+                        <h5 class="fw-bold mt-2">
+                            {{ dataset_name or 'N/A' }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <small class="text-muted">Primary Metric</small>
+                        <h5 class="fw-bold text-primary mt-2">
+
+                            {% if task_type == 'classification' %}
+                                {{ primary_metric|default('f1_score')|replace('_', ' ')|upper }}
+                            {% else %}
+                                {{ primary_metric|default('r2_score')|replace('_', ' ')|upper }}
+                            {% endif %}
+
+                        </h5>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================================= -->
+        <!-- CLASSIFICATION -->
+        <!-- ================================= -->
+
+        {% if task_type == 'classification' %}
+
+        <!-- CLASSIFICATION METRICS -->
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                Classification Performance Metrics
+            </div>
+
+            <div class="card-body">
+                <div style="height:350px;">
+                    <canvas id="classificationMetrics-{{ model_index }}"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CONFUSION MATRIX + ROC -->
+        <div class="row g-4 mb-4">
+
+            <!-- CONFUSION MATRIX HEATMAP -->
+            {% if result.metrics.get('confusion_matrix') %}
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="fas fa-th me-2 text-primary"></i>
+                        Confusion Matrix Heatmap
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="table-responsive"
+                             id="confusionChart-{{ model_index }}">
+
+                            <div class="text-muted text-center py-4">
+                                Loading confusion matrix...
+                            </div>
+
+                        </div>
+
+                        <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+                            <span class="small text-muted">Low</span>
+
+                            <div style="
+                                width:130px;
+                                height:12px;
+                                border-radius:4px;
+                                background:linear-gradient(
+                                    to right,
+                                    rgba(124,58,237,0.08),
+                                    rgba(124,58,237,1)
+                                );
+                            "></div>
+
+                            <span class="small text-muted">High</span>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            {% endif %}
+
+            <!-- ROC CURVE -->
+            {% if result.metrics.get('roc_curve') %}
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                        ROC Curve & AUC
+                    </div>
+
+                    <div class="card-body">
+                        <div style="height:350px;">
+                            <canvas id="rocChart-{{ model_index }}"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        <!-- CLASSIFICATION REPORT -->
+        {% if result.metrics.get('classification_report') %}
+
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="fas fa-chart-column me-2 text-primary"></i>
+                Classification Report
+            </div>
+
+            <div class="card-body">
+                <div style="height:380px;">
+                    <canvas id="reportChart-{{ model_index }}"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        {% endif %}
+
+        {% else %}
+
+        <!-- ================================= -->
+        <!-- REGRESSION -->
+        <!-- ================================= -->
+
+        <!-- REGRESSION METRICS -->
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                Regression Performance Metrics
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-4">
+
+                    {% for key, label in [
+                        ('mae', 'Mean Absolute Error'),
+                        ('mse', 'Mean Squared Error'),
+                        ('rmse', 'Root Mean Squared Error'),
+                        ('r2_score', 'R² Score')
+                    ] %}
+
+                    <div class="col-md-6">
+
+                        <div class="border rounded p-3 h-100">
+
+                            <h6 class="fw-bold">{{ label }}</h6>
+
+                            <h4 class="text-primary">
+                                {% if result.metrics.get(key) is not none %}
+                                    {{ "%.6f"|format(result.metrics.get(key)|float) }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h4>
+
+                            <div style="height:180px;">
+                                <canvas id="{{ key }}Chart-{{ model_index }}"></canvas>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ACTUAL VS PREDICTED + RESIDUALS -->
+        <div class="row g-4 mb-4">
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="fas fa-bullseye me-2 text-primary"></i>
+                        Actual vs Predicted
+                    </div>
+
+                    <div class="card-body">
+                        <div style="height:350px;">
+                            <canvas id="predictionChart-{{ model_index }}"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+
+                    <div class="card-header bg-white fw-bold py-3">
+                        <i class="fas fa-wave-square me-2 text-primary"></i>
+                        Residual Plot
+                    </div>
+
+                    <div class="card-body">
+                        <div style="height:350px;">
+                            <canvas id="residualChart-{{ model_index }}"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        {% endif %}
+
+        <!-- FEATURE IMPORTANCE -->
+        {% if result.feature_importance %}
+
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-header bg-white fw-bold py-3">
+                <i class="fas fa-ranking-star me-2 text-primary"></i>
+                Feature Importance
+            </div>
+
+            <div class="card-body">
+                <div style="height:380px;">
+                    <canvas id="importanceChart-{{ model_index }}"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    {% endfor %}
+
+    <!-- ACTION BUTTONS -->
+    <div class="d-flex flex-wrap gap-2 mt-4">
+
+        <a href="{{ url_for('ml.ml_page') }}" class="btn btn-primary">
+            <i class="fas fa-redo me-2"></i>
+            Train Another Model
+        </a>
+
+        <a href="{{ url_for('evaluation.clear_evaluation') }}"
+           class="btn btn-outline-danger"
+           onclick="return confirm('Clear evaluation results?')">
+
+            <i class="fas fa-trash me-2"></i>
+            Clear Results
+        </a>
+
+    </div>
+
+    {% else %}
+
+    <!-- EMPTY STATE -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+
+            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+
+            <h5>No Evaluation Results</h5>
+
+            <p class="text-muted">
+                Train a machine learning model first.
+            </p>
+
+            <a href="{{ url_for('ml.ml_page') }}" class="btn btn-primary">
+                <i class="fas fa-play me-2"></i>
+                Go to Machine Learning Studio
+            </a>
+
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+
+<!-- CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const selector = document.getElementById('modelSelector');
+
+    if (!selector) return;
+
+    const evaluationResults = {{ results|tojson }};
+    const taskType = {{ task_type|tojson }};
+    const targetClasses = {{ target_classes|tojson }};
+
+    const charts = {};
+
+    // =====================================
+    // COMMON OPTIONS
+    // =====================================
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    };
+
+    function isValidNumber(value) {
+
+        return value !== null &&
+               value !== undefined &&
+               value !== '' &&
+               Number.isFinite(Number(value));
+
+    }
+
+    // =====================================
+    // CHART MANAGEMENT
+    // =====================================
+
+    function destroyChart(id) {
+
+        if (charts[id]) {
+            charts[id].destroy();
+            delete charts[id];
+        }
+
+    }
+
+    function createChart(id, config) {
+
+        const canvas = document.getElementById(id);
+
+        if (!canvas) return;
+
+        destroyChart(id);
+
+        charts[id] = new Chart(canvas, config);
+
+    }
+
+    // =====================================
+    // F1-SCORE COMPARISON
+    // =====================================
+
+    function createF1ComparisonChart() {
+
+        if (taskType !== 'classification') return;
+
+        const labels = [];
+        const values = [];
+
+        evaluationResults.forEach(result => {
+
+            const metrics = result.metrics || {};
+            const report = metrics.classification_report || {};
+
+            let f1 = metrics.f1_score;
+
+            // Weighted average fallback
+            if (!isValidNumber(f1)) {
+                f1 = report['weighted avg']?.['f1-score'];
+            }
+
+            // Macro average fallback
+            if (!isValidNumber(f1)) {
+                f1 = report['macro avg']?.['f1-score'];
+            }
+
+            if (!isValidNumber(f1)) return;
+
+            labels.push(result.model_name);
+            values.push(Number(f1) * 100);
+
+        });
+
+        if (!values.length) return;
+
+        createChart('f1ComparisonChart', {
+
+            type: 'bar',
+
+            data: {
+                labels: labels,
+
+                datasets: [{
+                    label: 'F1-Score (%)',
+                    data: values,
+
+                    backgroundColor: '#7C3AED',
+                    borderRadius: 8
+                }]
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+
+                        title: {
+                            display: true,
+                            text: 'F1-Score (%)'
+                        }
+                    }
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // TRAINING TIME COMPARISON
+    // =====================================
+
+    function createTrainingTimeComparisonChart() {
+
+        const labels = [];
+        const values = [];
+
+        evaluationResults.forEach(result => {
+
+            const time = Number(result.training_time);
+
+            if (!Number.isFinite(time) || time < 0) return;
+
+            labels.push(result.model_name);
+            values.push(time);
+
+        });
+
+        if (!values.length) return;
+
+        createChart('trainingTimeComparisonChart', {
+
+            type: 'bar',
+
+            data: {
+                labels: labels,
+
+                datasets: [{
+                    label: 'Training Time (seconds)',
+                    data: values,
+
+                    backgroundColor: '#8B5CF6',
+                    borderRadius: 8
+                }]
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+                    y: {
+                        beginAtZero: true,
+
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)'
+                        }
+                    }
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // CONFUSION MATRIX HEATMAP
+    // =====================================
+
+    function createConfusionMatrix(index, metrics) {
+
+        const matrix = metrics.confusion_matrix;
+
+        const container = document.getElementById(
+            'confusionChart-' + index
+        );
+
+        if (!container) return;
+
+        if (
+            !Array.isArray(matrix) ||
+            matrix.length === 0
+        ) {
+
+            container.innerHTML = `
+                <div class="text-muted text-center py-4">
+                    No confusion matrix data available.
+                </div>
+            `;
+
+            return;
+        }
+
+        const classLabels =
+            metrics.class_labels ||
+            targetClasses ||
+            [];
+
+        const labels = matrix.map((row, i) => {
+
+            return classLabels[i] !== undefined
+                ? String(classLabels[i])
+                : String(i);
+
+        });
+
+        const maxValue = Math.max(
+            1,
+            ...matrix.flat().map(value => Number(value) || 0)
+        );
+
+        let html = `
+            <table class="table table-bordered text-center align-middle mb-0"
+                   style="min-width:300px;">
+
+                <thead>
+                    <tr>
+                        <th colspan="2"
+                            class="bg-light text-muted small">
+                            Actual / Predicted
+                        </th>
+        `;
+
+        labels.forEach(label => {
+
+            html += `
+                <th class="bg-light fw-bold">
+                    ${escapeHTML(label)}
+                </th>
+            `;
+
+        });
+
+        html += `
+                    </tr>
+                </thead>
+
+                <tbody>
+        `;
+
+        matrix.forEach((row, y) => {
+
+            html += '<tr>';
+
+            if (y === 0) {
+
+                html += `
+                    <th rowspan="${matrix.length}"
+                        class="bg-light text-muted small"
+                        style="writing-mode:vertical-rl;transform:rotate(180deg);">
+                        Actual Class
+                    </th>
+                `;
+
+            }
+
+            html += `
+                <th class="bg-light fw-bold">
+                    ${escapeHTML(labels[y])}
+                </th>
+            `;
+
+            row.forEach((value, x) => {
+
+                const numericValue = Number(value) || 0;
+                const intensity = numericValue / maxValue;
+
+                const alpha = 0.10 + intensity * 0.90;
+
+                const textColor = intensity > 0.45
+                    ? '#ffffff'
+                    : '#4C1D95';
+
+                const isDiagonal = x === y;
+
+                html += `
+                    <td
+                        style="
+                            background-color:rgba(124,58,237,${alpha});
+                            color:${textColor};
+                            font-weight:700;
+                            min-width:55px;
+                            height:55px;
+                            font-size:15px;
+                            border:2px solid white;
+                            ${isDiagonal ? 'outline:2px solid rgba(76,29,149,0.25);outline-offset:-4px;' : ''}
+                        "
+                        title="Actual: ${escapeHTML(labels[y])} | Predicted: ${escapeHTML(labels[x])} | Count: ${numericValue}"
+                    >
+                        ${numericValue}
+                    </td>
+                `;
+
+            });
+
+            html += '</tr>';
+
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = html;
+
+    }
+
+    function escapeHTML(value) {
+
+        return String(value).replace(/[&<>"']/g, function (char) {
+
+            const entities = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+
+            return entities[char];
+
+        });
+
+    }
+
+    // =====================================
+    // CLASSIFICATION METRICS
+    // =====================================
+
+    function createClassificationMetrics(index, metrics) {
+
+        const keys = [
+            'accuracy',
+            'precision',
+            'recall',
+            'f1_score',
+            'auc_roc'
+        ];
+
+        const labels = [];
+        const values = [];
+
+        keys.forEach(key => {
+
+            const value = metrics[key];
+
+            if (!isValidNumber(value)) return;
+
+            labels.push(key.replace(/_/g, ' ').toUpperCase());
+            values.push(Number(value) * 100);
+
+        });
+
+        if (!values.length) return;
+
+        createChart('classificationMetrics-' + index, {
+
+            type: 'bar',
+
+            data: {
+                labels: labels,
+
+                datasets: [{
+
+                    label: 'Performance (%)',
+                    data: values,
+
+                    backgroundColor: [
+                        '#7C3AED',
+                        '#8B5CF6',
+                        '#A78BFA',
+                        '#6D28D9',
+                        '#C4B5FD'
+                    ],
+
+                    borderRadius: 8
+
+                }]
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+
+                        title: {
+                            display: true,
+                            text: 'Score (%)'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // ROC CURVE - BINARY + MULTICLASS
+    // =====================================
+
+    function createROC(index, metrics) {
+
+        const roc = metrics.roc_curve;
+
+        if (!roc || typeof roc !== 'object') return;
+
+        const datasets = [];
+
+        const colors = [
+            '#7C3AED',
+            '#2563EB',
+            '#059669',
+            '#D97706',
+            '#DC2626',
+            '#0891B2',
+            '#9333EA'
+        ];
+
+        // BINARY CLASSIFICATION
+        if (Array.isArray(roc.fpr) && Array.isArray(roc.tpr)) {
+
+            const points = roc.fpr.map((value, i) => ({
+
+                x: Number(value),
+                y: Number(roc.tpr[i])
+
+            })).filter(point =>
+                Number.isFinite(point.x) &&
+                Number.isFinite(point.y)
+            );
+
+            if (points.length) {
+
+                const aucLabel = isValidNumber(roc.auc)
+                    ? ' (AUC = ' + Number(roc.auc).toFixed(4) + ')'
+                    : '';
+
+                datasets.push({
+
+                    label: 'ROC Curve' + aucLabel,
+                    data: points,
+
+                    showLine: true,
+                    borderColor: colors[0],
+                    backgroundColor: colors[0],
+                    borderWidth: 3,
+                    pointRadius: 0
+
+                });
+
+            }
+
+        } else {
+
+            // MULTICLASS CLASSIFICATION
+            Object.entries(roc).forEach(([className, classROC], i) => {
+
+                if (
+                    !classROC ||
+                    !Array.isArray(classROC.fpr) ||
+                    !Array.isArray(classROC.tpr)
+                ) {
+                    return;
+                }
+
+                const points = classROC.fpr.map((value, j) => ({
+
+                    x: Number(value),
+                    y: Number(classROC.tpr[j])
+
+                })).filter(point =>
+                    Number.isFinite(point.x) &&
+                    Number.isFinite(point.y)
+                );
+
+                if (!points.length) return;
+
+                const aucLabel = isValidNumber(classROC.auc)
+                    ? ' (AUC = ' + Number(classROC.auc).toFixed(4) + ')'
+                    : '';
+
+                datasets.push({
+
+                    label: String(className) + aucLabel,
+                    data: points,
+
+                    showLine: true,
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: colors[i % colors.length],
+                    borderWidth: 2.5,
+                    pointRadius: 0
+
+                });
+
+            });
+
+        }
+
+        if (!datasets.length) return;
+
+        datasets.push({
+
+            label: 'Random Classifier',
+
+            data: [
+                {x: 0, y: 0},
+                {x: 1, y: 1}
+            ],
+
+            showLine: true,
+            borderColor: '#9CA3AF',
+            borderDash: [6, 6],
+            pointRadius: 0,
+            borderWidth: 2
+
+        });
+
+        createChart('rocChart-' + index, {
+
+            type: 'scatter',
+
+            data: {
+                datasets: datasets
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: 1,
+
+                        title: {
+                            display: true,
+                            text: 'False Positive Rate'
+                        }
+
+                    },
+
+                    y: {
+                        min: 0,
+                        max: 1,
+
+                        title: {
+                            display: true,
+                            text: 'True Positive Rate'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // CLASSIFICATION REPORT
+    // =====================================
+
+    function createClassificationReport(index, metrics) {
+
+        const report = metrics.classification_report || {};
+
+        const labels = [];
+        const precision = [];
+        const recall = [];
+        const f1 = [];
+
+        Object.entries(report).forEach(([name, values]) => {
+
+            if (
+                !values ||
+                typeof values !== 'object' ||
+                values.precision === undefined
+            ) {
+                return;
+            }
+
+            labels.push(name);
+            precision.push(Number(values.precision) * 100);
+            recall.push(Number(values.recall) * 100);
+            f1.push(Number(values['f1-score']) * 100);
+
+        });
+
+        if (!labels.length) return;
+
+        createChart('reportChart-' + index, {
+
+            type: 'bar',
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: 'Precision',
+                        data: precision,
+                        backgroundColor: '#7C3AED',
+                        borderRadius: 5
+                    },
+
+                    {
+                        label: 'Recall',
+                        data: recall,
+                        backgroundColor: '#A78BFA',
+                        borderRadius: 5
+                    },
+
+                    {
+                        label: 'F1 Score',
+                        data: f1,
+                        backgroundColor: '#C4B5FD',
+                        borderRadius: 5
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+
+                        title: {
+                            display: true,
+                            text: 'Score (%)'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // REGRESSION METRICS
+    // =====================================
+
+    function createRegressionMetrics(index, metrics) {
+
+        const definitions = [
+            {key: 'mae', label: 'MAE'},
+            {key: 'mse', label: 'MSE'},
+            {key: 'rmse', label: 'RMSE'},
+            {key: 'r2_score', label: 'R² Score'}
+        ];
+
+        definitions.forEach(item => {
+
+            const value = metrics[item.key];
+
+            if (!isValidNumber(value)) return;
+
+            const id = item.key + 'Chart-' + index;
+            const numericValue = Number(value);
+            const positive = numericValue >= 0;
+
+            createChart(id, {
+
+                type: 'bar',
+
+                data: {
+
+                    labels: [item.label],
+
+                    datasets: [{
+
+                        label: item.label,
+                        data: [numericValue],
+
+                        backgroundColor: '#7C3AED',
+                        borderRadius: 8,
+                        barThickness: 45
+
+                    }]
+
+                },
+
+                options: {
+
+                    ...commonOptions,
+
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: positive,
+
+                            suggestedMin: positive
+                                ? 0
+                                : numericValue * 1.2,
+
+                            suggestedMax: positive
+                                ? numericValue * 1.2 || 1
+                                : 0
+
+                        }
+
+                    }
+
+                }
+
+            });
+
+        });
+
+    }
+
+    // =====================================
+    // ACTUAL VS PREDICTED
+    // =====================================
+
+    function createPredictionChart(index, metrics) {
+
+        const comparison = metrics.actual_vs_predicted;
+
+        if (!comparison) return;
+
+        const actual = comparison.actual || [];
+        const predicted = comparison.predicted || [];
+
+        if (!actual.length || !predicted.length) return;
+
+        const points = actual.map((value, i) => ({
+
+            x: Number(value),
+            y: Number(predicted[i])
+
+        })).filter(point =>
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y)
+        );
+
+        if (!points.length) return;
+
+        const allValues = points.flatMap(point => [
+            point.x,
+            point.y
+        ]);
+
+        const min = Math.min(...allValues);
+        const max = Math.max(...allValues);
+
+        createChart('predictionChart-' + index, {
+
+            type: 'scatter',
+
+            data: {
+
+                datasets: [
+
+                    {
+
+                        label: 'Predicted Values',
+                        data: points,
+
+                        backgroundColor: '#7C3AED',
+                        pointRadius: 4
+
+                    },
+
+                    {
+
+                        label: 'Ideal Prediction',
+
+                        data: [
+                            {x: min, y: min},
+                            {x: max, y: max}
+                        ],
+
+                        showLine: true,
+                        borderColor: '#9CA3AF',
+                        borderDash: [6, 6],
+                        pointRadius: 0
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+
+                    x: {
+                        type: 'linear',
+
+                        title: {
+                            display: true,
+                            text: 'Actual Values'
+                        }
+
+                    },
+
+                    y: {
+
+                        title: {
+                            display: true,
+                            text: 'Predicted Values'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // RESIDUAL PLOT
+    // =====================================
+
+    function createResidualChart(index, metrics) {
+
+        const residualData = metrics.residuals;
+
+        let residuals = [];
+
+        if (
+            residualData &&
+            Array.isArray(residualData.predicted) &&
+            Array.isArray(residualData.residual)
+        ) {
+
+            residuals = residualData.predicted.map((value, i) => ({
+
+                x: Number(value),
+                y: Number(residualData.residual[i])
+
+            })).filter(point =>
+                Number.isFinite(point.x) &&
+                Number.isFinite(point.y)
+            );
+
+        } else {
+
+            const comparison = metrics.actual_vs_predicted;
+
+            if (!comparison) return;
+
+            const actual = comparison.actual || [];
+            const predicted = comparison.predicted || [];
+
+            residuals = actual.map((value, i) => ({
+
+                x: Number(predicted[i]),
+                y: Number(value) - Number(predicted[i])
+
+            })).filter(point =>
+                Number.isFinite(point.x) &&
+                Number.isFinite(point.y)
+            );
+
+        }
+
+        if (!residuals.length) return;
+
+        const xValues = residuals.map(point => point.x);
+
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+
+        const maxAbs = Math.max(
+            1,
+            ...residuals.map(point => Math.abs(point.y))
+        );
+
+        createChart('residualChart-' + index, {
+
+            type: 'scatter',
+
+            data: {
+
+                datasets: [
+
+                    {
+
+                        label: 'Residuals',
+                        data: residuals,
+
+                        backgroundColor: '#7C3AED',
+                        showLine: false,
+                        pointRadius: 4
+
+                    },
+
+                    {
+
+                        label: 'Zero Error',
+
+                        data: [
+                            {x: minX, y: 0},
+                            {x: maxX, y: 0}
+                        ],
+
+                        showLine: true,
+                        borderColor: '#EF4444',
+                        borderDash: [6, 6],
+                        pointRadius: 0
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                scales: {
+
+                    x: {
+
+                        type: 'linear',
+
+                        title: {
+                            display: true,
+                            text: 'Predicted Values'
+                        }
+
+                    },
+
+                    y: {
+
+                        suggestedMin: -maxAbs * 1.1,
+                        suggestedMax: maxAbs * 1.1,
+
+                        title: {
+                            display: true,
+                            text: 'Residual (Actual - Predicted)'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // FEATURE IMPORTANCE
+    // =====================================
+
+    function createImportanceChart(index, result) {
+
+        const importance = result.feature_importance;
+
+        if (!importance) return;
+
+        const features = importance.features || [];
+        const values = importance.importances || [];
+
+        if (
+            !features.length ||
+            features.length !== values.length
+        ) {
+            return;
+        }
+
+        const sorted = features.map((feature, i) => ({
+
+            feature: feature,
+            value: Number(values[i])
+
+        })).filter(item => Number.isFinite(item.value))
+          .sort((a, b) => a.value - b.value);
+
+        if (!sorted.length) return;
+
+        createChart('importanceChart-' + index, {
+
+            type: 'bar',
+
+            data: {
+
+                labels: sorted.map(item => item.feature),
+
+                datasets: [{
+
+                    label: 'Feature Importance',
+                    data: sorted.map(item => item.value),
+
+                    backgroundColor: '#7C3AED',
+                    borderRadius: 5
+
+                }]
+
+            },
+
+            options: {
+
+                ...commonOptions,
+
+                indexAxis: 'y',
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        beginAtZero: true,
+
+                        title: {
+                            display: true,
+                            text: 'Importance Score'
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+    // =====================================
+    // DISPLAY SELECTED MODEL
+    // =====================================
+
+    function showSelectedResult() {
+
+        document.querySelectorAll('.evaluation-result')
+            .forEach(element => {
+                element.style.display = 'none';
+            });
+
+        const index = Number(selector.value);
+
+        const selected = document.getElementById(
+            'result-' + index
+        );
+
+        const result = evaluationResults[index];
+
+        if (!selected || !result) return;
+
+        selected.style.display = 'block';
+
+        const metrics = result.metrics || {};
+
+        const currentTask = result.task_type || taskType;
+
+        if (currentTask === 'classification') {
+
+            createClassificationMetrics(index, metrics);
+
+            createConfusionMatrix(index, metrics);
+
+            createROC(index, metrics);
+
+            createClassificationReport(index, metrics);
+
+        } else {
+
+            createRegressionMetrics(index, metrics);
+
+            createPredictionChart(index, metrics);
+
+            createResidualChart(index, metrics);
+
+        }
+
+        createImportanceChart(index, result);
+
+    }
+
+    // =====================================
+    // INITIALIZE DASHBOARD
+    // =====================================
+
+    createF1ComparisonChart();
+
+    createTrainingTimeComparisonChart();
+
+    selector.addEventListener('change', showSelectedResult);
+
+    showSelectedResult();
+
+});
+
+</script>
+
+{% endblock %}

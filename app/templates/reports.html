@@ -1,0 +1,623 @@
+
+{% extends "base.html" %}
+
+{% block title %}Reports Center | ISRAA{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="fas fa-file-alt me-2 text-primary"></i>
+                Reports Center
+            </h2>
+            <p class="text-muted mb-0">
+                Machine Learning reports, performance and analytics.
+            </p>
+        </div>
+
+        {% if report and report.results %}
+        <a href="{{ url_for('reports.export_csv') }}"
+           class="btn btn-primary">
+            <i class="fas fa-download me-2"></i>
+            Export CSV
+        </a>
+        {% endif %}
+    </div>
+
+
+    {% if report and report.results %}
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-2">Dataset</p>
+                        <h5 class="fw-bold">
+                            {{ report.dataset_name }}
+                        </h5>
+                    </div>
+                    <i class="fas fa-database fa-2x text-primary"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-2">Task Type</p>
+                        <h5 class="fw-bold text-capitalize">
+                            {{ report.task_type }}
+                        </h5>
+                    </div>
+                    <i class="fas fa-brain fa-2x text-primary"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-2">Models Evaluated</p>
+                        <h3 class="fw-bold">
+                            {{ report.successful_models }}
+                        </h3>
+                    </div>
+                    <i class="fas fa-cubes fa-2x text-primary"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 p-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted mb-2">Best Model</p>
+                        <h5 class="fw-bold">
+                            {{ report.best_model_name or 'N/A' }}
+                        </h5>
+                    </div>
+                    <i class="fas fa-trophy fa-2x text-warning"></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Training Information -->
+    <div class="card border-0 shadow-sm p-4 mb-4">
+
+        <h5 class="fw-bold mb-4">
+            <i class="fas fa-info-circle text-primary me-2"></i>
+            Training Information
+        </h5>
+
+        <div class="row g-4">
+
+            <div class="col-md-4">
+                <small class="text-muted">Target Column</small>
+                <div class="fw-semibold">
+                    {{ report.target_column }}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Number of Features</small>
+                <div class="fw-semibold">
+                    {{ report.feature_columns|length }}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Training Date</small>
+                <div class="fw-semibold">
+                    {{ report.trained_at }}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Test Size</small>
+                <div class="fw-semibold">
+                    {{ report.test_size }}%
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Random State</small>
+                <div class="fw-semibold">
+                    {{ report.random_state }}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <small class="text-muted">Balancing Method</small>
+                <div class="fw-semibold">
+                    {{ report.balancing or 'None' }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Performance Analytics -->
+    <div class="card border-0 shadow-sm p-4 mb-4">
+
+        <h5 class="fw-bold mb-4">
+            <i class="fas fa-chart-bar text-primary me-2"></i>
+            Performance Analytics
+        </h5>
+
+        <div class="row g-4">
+
+            {% if report.task_type == 'classification' %}
+
+            <div class="col-lg-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-semibold mb-3">
+                        Accuracy Comparison
+                    </h6>
+                    <div style="height:300px;">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-semibold mb-3">
+                        Precision, Recall and F1 Score
+                    </h6>
+                    <div style="height:300px;">
+                        <canvas id="metricsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+
+            <div class="col-lg-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-semibold mb-3">
+                        RMSE Comparison
+                    </h6>
+                    <div style="height:300px;">
+                        <canvas id="rmseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="border rounded p-3 h-100">
+                    <h6 class="fw-semibold mb-3">
+                        R² Score Comparison
+                    </h6>
+                    <div style="height:300px;">
+                        <canvas id="r2Chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {% endif %}
+
+            <div class="col-12">
+                <div class="border rounded p-3">
+                    <h6 class="fw-semibold mb-3">
+                        Training Time Comparison
+                    </h6>
+                    <div style="height:300px;">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Model Comparison Table -->
+    <div class="card border-0 shadow-sm p-4 mb-4">
+
+        <h5 class="fw-bold mb-4">
+            <i class="fas fa-table text-primary me-2"></i>
+            Model Performance Comparison
+        </h5>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+                    <tr>
+                        <th>Model</th>
+
+                        {% if report.task_type == 'classification' %}
+                        <th>Accuracy</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1 Score</th>
+                        <th>AUC ROC</th>
+                        {% else %}
+                        <th>MAE</th>
+                        <th>MSE</th>
+                        <th>RMSE</th>
+                        <th>R² Score</th>
+                        {% endif %}
+
+                        <th>Time</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for result in report.results %}
+
+                    <tr>
+                        <td class="fw-semibold">
+                            {{ result.model_name }}
+
+                            {% if result.model_key == report.best_model %}
+                            <span class="badge bg-success ms-1">
+                                Best
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        {% if report.task_type == 'classification' %}
+
+                        <td>
+                            {{ "%.2f"|format(result.metrics.accuracy|default(0)|float * 100) }}%
+                        </td>
+
+                        <td>
+                            {{ "%.2f"|format(result.metrics.precision|default(0)|float * 100) }}%
+                        </td>
+
+                        <td>
+                            {{ "%.2f"|format(result.metrics.recall|default(0)|float * 100) }}%
+                        </td>
+
+                        <td>
+                            {{ "%.2f"|format(result.metrics.f1_score|default(0)|float * 100) }}%
+                        </td>
+
+                        <td>
+                            {% if result.metrics.auc_roc is not none %}
+                                {{ "%.3f"|format(result.metrics.auc_roc|float) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+
+                        {% else %}
+
+                        <td>{{ "%.4f"|format(result.metrics.mae|default(0)|float) }}</td>
+                        <td>{{ "%.4f"|format(result.metrics.mse|default(0)|float) }}</td>
+                        <td>{{ "%.4f"|format(result.metrics.rmse|default(0)|float) }}</td>
+                        <td>{{ "%.4f"|format(result.metrics.r2_score|default(0)|float) }}</td>
+
+                        {% endif %}
+
+                        <td>{{ result.training_time }}</td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+
+    <!-- Confusion Matrix -->
+    {% if report.task_type == 'classification'
+          and report.best_result
+          and report.best_result.metrics.confusion_matrix %}
+
+    <div class="card border-0 shadow-sm p-4 mb-4">
+
+        <h5 class="fw-bold mb-3">
+            <i class="fas fa-th text-primary me-2"></i>
+            Best Model Confusion Matrix
+        </h5>
+
+        <p class="text-muted small">
+            Model: {{ report.best_model_name }}
+        </p>
+
+        {% set matrix = report.best_result.metrics.confusion_matrix %}
+
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+
+                <thead class="table-light">
+                    <tr>
+                        <th>Actual / Predicted</th>
+                        {% for label in report.target_classes %}
+                        <th>{{ label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in matrix %}
+
+                    {% set row_index = loop.index0 %}
+
+                    <tr>
+                        <th class="table-light">
+                            {{ report.target_classes[row_index] if row_index < report.target_classes|length else row_index }}
+                        </th>
+
+                        {% for value in row %}
+                        <td class="{% if loop.index0 == row_index %}table-success fw-bold{% endif %}">
+                            {{ value }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+
+    {% endif %}
+
+
+    <!-- Selected Features -->
+    <div class="card border-0 shadow-sm p-4 mb-4">
+
+        <h5 class="fw-bold mb-3">
+            <i class="fas fa-list text-primary me-2"></i>
+            Selected Features
+        </h5>
+
+        <div class="d-flex flex-wrap gap-2">
+
+            {% for feature in report.feature_columns %}
+            <span class="badge bg-light text-dark border p-2">
+                {{ feature }}
+            </span>
+            {% endfor %}
+
+        </div>
+    </div>
+
+
+    <!-- Actions -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+
+        <a href="{{ url_for('evaluation.evaluation_page') }}"
+           class="btn btn-primary">
+            <i class="fas fa-chart-line me-2"></i>
+            Full Evaluation
+        </a>
+
+        <a href="{{ url_for('ml.ml_page') }}"
+           class="btn btn-outline-secondary">
+            <i class="fas fa-brain me-2"></i>
+            Machine Learning Studio
+        </a>
+
+    </div>
+
+
+    {% else %}
+
+    <!-- Empty State -->
+    <div class="card border-0 shadow-sm p-5 text-center">
+
+        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+
+        <h4 class="fw-bold">
+            No Reports Available
+        </h4>
+
+        <p class="text-muted">
+            Train and evaluate a machine learning model
+            to generate your first report.
+        </p>
+
+        <div>
+            <a href="{{ url_for('ml.ml_page') }}"
+               class="btn btn-primary mt-2">
+                <i class="fas fa-play me-2"></i>
+                Start Training
+            </a>
+        </div>
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+
+{% if report and report.results %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const results = {{ report.results | tojson }};
+
+const labels = results.map(
+    item => item.model_name
+);
+
+const metrics = results.map(
+    item => item.metrics || {}
+);
+
+const times = results.map(
+    item => Number(item.training_time) || 0
+);
+
+const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom'
+        }
+    }
+};
+
+
+{% if report.task_type == 'classification' %}
+
+// Accuracy Chart
+new Chart(document.getElementById('accuracyChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Accuracy (%)',
+            data: metrics.map(
+                m => (Number(m.accuracy) || 0) * 100
+            ),
+            backgroundColor: '#8B5CF6',
+            borderRadius: 6
+        }]
+    },
+    options: {
+        ...commonOptions,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: value => value + '%'
+                }
+            }
+        }
+    }
+});
+
+
+// Precision / Recall / F1 Chart
+new Chart(document.getElementById('metricsChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Precision',
+                data: metrics.map(
+                    m => (Number(m.precision) || 0) * 100
+                ),
+                backgroundColor: '#8B5CF6'
+            },
+            {
+                label: 'Recall',
+                data: metrics.map(
+                    m => (Number(m.recall) || 0) * 100
+                ),
+                backgroundColor: '#06B6D4'
+            },
+            {
+                label: 'F1 Score',
+                data: metrics.map(
+                    m => (Number(m.f1_score) || 0) * 100
+                ),
+                backgroundColor: '#10B981'
+            }
+        ]
+    },
+    options: {
+        ...commonOptions,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+{% else %}
+
+// RMSE Chart
+new Chart(document.getElementById('rmseChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'RMSE',
+            data: metrics.map(
+                m => Number(m.rmse) || 0
+            ),
+            backgroundColor: '#8B5CF6',
+            borderRadius: 6
+        }]
+    },
+    options: {
+        ...commonOptions,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+
+// R2 Chart
+new Chart(document.getElementById('r2Chart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'R² Score',
+            data: metrics.map(
+                m => Number(m.r2_score) || 0
+            ),
+            backgroundColor: '#06B6D4',
+            borderRadius: 6
+        }]
+    },
+    options: commonOptions
+});
+
+{% endif %}
+
+
+// Training Time Chart
+new Chart(document.getElementById('timeChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Training Time (seconds)',
+            data: times,
+            backgroundColor: '#A78BFA',
+            borderRadius: 6
+        }]
+    },
+    options: {
+        ...commonOptions,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+</script>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,650 @@
+
+{% extends "base.html" %}
+
+{% block title %}Data Preprocessing | ISRAA{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <span class="text-primary fw-semibold small">
+                DATA INTELLIGENCE STUDIO
+            </span>
+            <h2 class="fw-bold mt-1 mb-1">Data Preprocessing</h2>
+            <p class="text-muted mb-0">
+                Clean, transform and prepare your dataset for machine learning.
+            </p>
+        </div>
+
+        {% if dataset_available %}
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('preprocessing.download') }}" class="btn btn-primary">
+                <i class="bi bi-download me-2"></i>Export Dataset
+            </a>
+
+            <form method="POST" action="{{ url_for('preprocessing.reset') }}">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if message %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>{{ message }}
+        </div>
+    {% endif %}
+
+    {% if not dataset_available %}
+
+        <!-- NO DATASET -->
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-database display-3 text-primary"></i>
+                <h4 class="fw-bold mt-3">No dataset loaded</h4>
+                <p class="text-muted">
+                    Upload a CSV dataset before starting preprocessing.
+                </p>
+
+                <a href="{{ url_for('upload.upload_page') }}" class="btn btn-primary mt-2">
+                    <i class="bi bi-cloud-upload me-2"></i>Upload Dataset
+                </a>
+            </div>
+        </div>
+
+    {% else %}
+
+        <!-- DATASET STATISTICS -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Total Rows</div>
+                        <h3 class="fw-bold mb-0">{{ rows_count }}</h3>
+                        <i class="bi bi-table text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Total Columns</div>
+                        <h3 class="fw-bold mb-0">{{ columns_count }}</h3>
+                        <i class="bi bi-columns-gap text-primary fs-4"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Missing Values</div>
+                        <h3 class="fw-bold mb-0">{{ report.missing_total }}</h3>
+                        <i class="bi bi-exclamation-circle text-warning fs-4"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Duplicates</div>
+                        <h3 class="fw-bold mb-0">{{ report.duplicates }}</h3>
+                        <i class="bi bi-copy text-danger fs-4"></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SMART RECOMMENDATIONS -->
+        {% if recommendations %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-lightbulb me-2 text-warning"></i>
+                    Smart Preprocessing Recommendations
+                </h5>
+            </div>
+
+            <div class="card-body">
+                {% for recommendation in recommendations %}
+                    <div class="alert alert-light border mb-2">
+                        <i class="bi bi-check-circle text-primary me-2"></i>
+                        {{ recommendation }}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- AUTO PREPROCESSING -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-magic me-2 text-primary"></i>
+                        Automatic Preprocessing
+                    </h5>
+                    <p class="text-muted mb-0">
+                        Automatically clean and prepare your dataset using preprocessing rules.
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('preprocessing.apply') }}">
+                    <input type="hidden" name="action" value="auto">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-stars me-2"></i>Run Auto Preprocessing
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- PREPROCESSING WORKSPACE -->
+        <div class="row g-4">
+
+            <!-- LEFT PANEL -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm">
+
+                    <div class="card-header bg-white py-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-sliders me-2 text-primary"></i>
+                            Transformation Tools
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <!-- MISSING VALUES -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="missing">
+
+                            <label class="form-label fw-semibold">Missing Values</label>
+
+                            <select name="strategy" class="form-select mb-2">
+                                <option value="mean">Fill with Mean</option>
+                                <option value="median">Fill with Median</option>
+                                <option value="mode">Fill with Mode</option>
+                                <option value="constant">Fill with Constant</option>
+                                <option value="drop_rows">Remove Rows</option>
+                                <option value="drop_columns">Remove Selected Columns</option>
+                            </select>
+
+                            <input type="number" step="any" name="constant_value" class="form-control mb-2" placeholder="Constant value (default 0)">
+
+                            <select name="columns" class="form-select mb-2" multiple size="4">
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <small class="text-muted">
+                                Leave columns empty to use all columns.
+                            </small>
+
+                            <button class="btn btn-primary w-100 mt-2">
+                                Apply Missing Values
+                            </button>
+                        </form>
+
+                        <!-- DUPLICATES -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="duplicates">
+                            <label class="form-label fw-semibold">Duplicate Rows</label>
+                            <button class="btn btn-outline-primary w-100">
+                                <i class="bi bi-copy me-2"></i>Remove Duplicates
+                            </button>
+                        </form>
+
+                        <!-- EMPTY ROWS -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="empty_rows">
+                            <button class="btn btn-outline-primary w-100">
+                                Remove Empty Rows
+                            </button>
+                        </form>
+
+                        <!-- EMPTY COLUMNS -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="empty_columns">
+                            <button class="btn btn-outline-primary w-100">
+                                Remove Empty Columns
+                            </button>
+                        </form>
+
+                        <!-- CONSTANT COLUMNS -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="constant_columns">
+                            <button class="btn btn-outline-primary w-100">
+                                Remove Constant Columns
+                            </button>
+                        </form>
+
+                        <!-- NUMERIC CONVERSION -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="numeric_conversion">
+
+                            <label class="form-label fw-semibold">Numeric Conversion</label>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Convert to Numeric
+                            </button>
+                        </form>
+
+                        <!-- ONE-HOT ENCODING -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="one_hot">
+
+                            <label class="form-label fw-semibold">One-Hot Encoding</label>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in categorical_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="drop_first" value="yes" class="form-check-input" id="dropFirst">
+                                <label for="dropFirst" class="form-check-label">
+                                    Drop first category
+                                </label>
+                            </div>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Apply One-Hot Encoding
+                            </button>
+                        </form>
+
+                        <!-- LABEL ENCODING -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="label">
+
+                            <label class="form-label fw-semibold">Label Encoding</label>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in categorical_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Apply Label Encoding
+                            </button>
+                        </form>
+
+                        <!-- SCALING -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="scaling">
+
+                            <label class="form-label fw-semibold">Feature Scaling</label>
+
+                            <select name="method" class="form-select mb-2">
+                                <option value="standard">Standard Scaler</option>
+                                <option value="minmax">Min-Max Scaler</option>
+                                <option value="robust">Robust Scaler</option>
+                            </select>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in numeric_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Scale Features
+                            </button>
+                        </form>
+
+                        <!-- DATE FEATURES -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="date_features">
+
+                            <label class="form-label fw-semibold">Date Feature Extraction</label>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Extract Date Features
+                            </button>
+                        </form>
+
+                        <!-- FEATURE INTERACTION -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="interaction">
+
+                            <label class="form-label fw-semibold">Feature Interaction</label>
+
+                            <select name="column_a" class="form-select mb-2" required>
+                                <option value="">First feature</option>
+                                {% for col in numeric_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select name="column_b" class="form-select mb-2" required>
+                                <option value="">Second feature</option>
+                                {% for col in numeric_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select name="operation" class="form-select mb-2">
+                                <option value="multiply">Multiplication</option>
+                                <option value="add">Addition</option>
+                                <option value="subtract">Subtraction</option>
+                                <option value="divide">Division</option>
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Create Feature
+                            </button>
+                        </form>
+
+                        <!-- FEATURE SELECTION -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="variance">
+
+                            <label class="form-label fw-semibold">Variance Threshold</label>
+
+                            <input type="number" name="threshold" value="0" min="0" step="0.01" class="form-control mb-2">
+
+                            <button class="btn btn-outline-primary w-100">
+                                Select Features
+                            </button>
+                        </form>
+
+                        <!-- OUTLIERS -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}" class="border-bottom pb-3 mb-3">
+                            <input type="hidden" name="action" value="outlier_cap">
+
+                            <label class="form-label fw-semibold">Outlier Treatment</label>
+
+                            <select name="columns" class="form-select mb-2" multiple size="3">
+                                {% for col in numeric_columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <button class="btn btn-outline-primary w-100">
+                                Cap Outliers (IQR)
+                            </button>
+
+                            <a href="{{ url_for('preprocessing.outliers') }}" class="btn btn-link w-100 mt-1">
+                                View Outlier Report
+                            </a>
+                        </form>
+
+                        <!-- TRAIN TEST SPLIT -->
+                        <form method="POST" action="{{ url_for('preprocessing.apply') }}">
+                            <input type="hidden" name="action" value="split">
+
+                            <label class="form-label fw-semibold">Train / Test Split</label>
+
+                            <select name="target" class="form-select mb-2" required>
+                                <option value="">Select target column</option>
+                                {% for col in columns %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <label class="form-label">Test Size</label>
+
+                            <select name="test_size" class="form-select mb-2">
+                                <option value="0.2">20%</option>
+                                <option value="0.25">25%</option>
+                                <option value="0.3">30%</option>
+                                <option value="0.4">40%</option>
+                            </select>
+
+                            <button class="btn btn-primary w-100">
+                                Split Dataset
+                            </button>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="col-lg-8">
+
+                <!-- DATASET PREVIEW -->
+                <div class="card border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">
+                                <i class="bi bi-grid me-2 text-primary"></i>
+                                Dataset Preview
+                            </h5>
+
+                            <span class="badge bg-primary-subtle text-primary">
+                                First 10 Rows
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered align-middle">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        {% for col in preview_columns %}
+                                            <th>{{ col }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for row in preview_rows %}
+                                        <tr>
+                                            {% for col in preview_columns %}
+                                                <td>{{ row[col] }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="100%" class="text-center text-muted">
+                                                No data available.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATASET REPORT -->
+                <div class="card border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white py-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-clipboard-data me-2 text-primary"></i>
+                            Dataset Quality Report
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold">Numeric Features</h6>
+
+                                {% for col in report.numeric_columns %}
+                                    <span class="badge bg-primary-subtle text-primary me-1 mb-2">
+                                        {{ col }}
+                                    </span>
+                                {% else %}
+                                    <p class="text-muted small">No numeric columns.</p>
+                                {% endfor %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="fw-semibold">Categorical Features</h6>
+
+                                {% for col in report.categorical_columns %}
+                                    <span class="badge bg-info-subtle text-info me-1 mb-2">
+                                        {{ col }}
+                                    </span>
+                                {% else %}
+                                    <p class="text-muted small">No categorical columns.</p>
+                                {% endfor %}
+                            </div>
+
+                        </div>
+
+                        <hr>
+
+                        <h6 class="fw-semibold mb-3">Missing Values by Column</h6>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Missing Values</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for col, count in report.missing_by_column.items() %}
+                                        <tr>
+                                            <td>{{ col }}</td>
+                                            <td>
+                                                {% if count > 0 %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        {{ count }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success">0</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="2" class="text-center text-muted">
+                                                No missing values found.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- OUTLIER REPORT -->
+                {% if outlier_report %}
+                <div class="card border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white py-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-graph-up me-2 text-primary"></i>
+                            Outlier Detection Report
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Lower Bound</th>
+                                        <th>Upper Bound</th>
+                                        <th>Outliers</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for col, values in outlier_report.items() %}
+                                        <tr>
+                                            <td>{{ col }}</td>
+                                            <td>{{ "%.3f"|format(values.lower_bound) }}</td>
+                                            <td>{{ "%.3f"|format(values.upper_bound) }}</td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark">
+                                                    {{ values.outliers_count }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">
+                                                No outliers detected.
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- TRAIN TEST DOWNLOADS -->
+                {% if split_available %}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+
+                        <h5 class="fw-bold mb-3">Train / Test Files</h5>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for part in ['X_train', 'X_test', 'y_train', 'y_test'] %}
+                                <a href="{{ url_for('preprocessing.download_split', part=part) }}" class="btn btn-outline-primary">
+                                    <i class="bi bi-download me-1"></i>{{ part }}
+                                </a>
+                            {% endfor %}
+                        </div>
+
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
