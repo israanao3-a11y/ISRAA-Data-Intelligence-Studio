@@ -1,7 +1,10 @@
+
 # ISRAA - Data Intelligence Studio
+
 # Core Framework
 flask>=3.1
 flask-sqlalchemy>=3.1
+gunicorn>=23.0
 
 # Data Processing
 pandas>=2.0
@@ -15,7 +18,7 @@ scikit-learn>=1.5
 imbalanced-learn>=0.12
 joblib>=1.4
 
-# Visualization (server-side chart generation)
+# Visualization
 matplotlib>=3.9
 seaborn>=0.13
 plotly>=5.24

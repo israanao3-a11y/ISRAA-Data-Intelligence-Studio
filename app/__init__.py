@@ -1,8 +1,11 @@
+
 """
 ISRAA - Data Intelligence Studio
 Flask application factory.
 """
+
 import os
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
@@ -11,13 +14,21 @@ db = SQLAlchemy()
 
 def create_app():
     """Create and configure the Flask application."""
+
     app = Flask(__name__)
+
     app.config.from_object('app.config.Config')
 
     # Ensure required directories exist
-    for folder_key in ['UPLOAD_FOLDER', 'PROCESSED_FOLDER', 'MODELS_FOLDER', 'REPORTS_FOLDER']:
+    for folder_key in [
+        'UPLOAD_FOLDER',
+        'PROCESSED_FOLDER',
+        'MODELS_FOLDER',
+        'REPORTS_FOLDER'
+    ]:
         os.makedirs(app.config[folder_key], exist_ok=True)
-    os.makedirs(os.path.join(app.instance_path), exist_ok=True)
+
+    os.makedirs(app.instance_path, exist_ok=True)
 
     # Initialize extensions
     db.init_app(app)
